@@ -5,7 +5,7 @@ use Data::Dimensions::SickTie;
 use strict;
 use vars qw($VERSION @ISA @HANDLER);
 @ISA = qw();
-$VERSION = '0.03';
+$VERSION = '0.04';
 
 # use me baby
 sub import {
@@ -192,7 +192,7 @@ sub u_arith {
     else {
 	$one->_moan("Mixing different types in arithmetic operation")
 	    unless ($one->same_units($two));
-	$result->natural(&$op($one->natural, $two->natural));
+	$result->base(&$op($one->base, $two->base));
     }
     return $result;
 }

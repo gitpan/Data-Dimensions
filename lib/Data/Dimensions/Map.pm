@@ -83,8 +83,8 @@ sub parse_SI {
 		$temp{$_} += $SI_units{$unit}->{$_} * $hr->{$unit};
 	    }
 	}
-	else {
-	    # potential to warn if requested... ??
+	else  {
+	    $temp{$unit} += $hr->{$unit};
 	}
     }
     return (\%temp, $scale);
@@ -192,6 +192,7 @@ sub parse_prefix {
 	  mile=> [ 5280*12*2.54 / 100, {m=>1}],
 	  nmile=> [ 1852, {m=>1}],
 	  acre=> [4840 * (3*12*2.54 / 100)**2 , {m=>2}],
+	  hectare => [100*100, {m => 2}],
 	  
 	  cc=> [(1/100)**3 , {m=>3}],
 	  liter=> [ 1000*((1/100)**3), {m=>3}],
@@ -215,20 +216,22 @@ sub parse_prefix {
 	  byte => [ 8 ,{bit=>1}],
 	  block=> [ 512*8, {bit=>1}],
 
-	  barn => [1e-28 , {m=>-2}],
+	  barn => [1e-28 , {m=>2}],
 	  amu => [ 1.66044e-27, {kg=>1}],
 	  electronvolt => [ 1.6021764e-19, {joule=>1}],
 	  erg => [(1/100)**2 * (1/1000) , {m=>2, kg=>1, s=>-2}],
 	  fermi=> [1e-15 , {m=>1}],
 	  lightyear=> [ 365.25 * 299_792_458 * 60 * 60 * 24, {m=>1}],
-	  parsec => [ 3.24 * 365.25 * 299_792_458 * 60 * 60 * 24, {}],
+	  parsec => [ 3.24 * 365.25 * 299_792_458 * 60 * 60 * 24, {m=>1}],
 
 	  point=> [(1/72) * 2.54 / 100 , {m=>1}],
 
-	  celsius    => [1 , {K=>1}],
+	  celsius    => [1 , {K=>1}], # although no zero point changes
 	  centrigrade=> [1 , {K=>1}],
 
 	  siderealyear=> [ 365.256360417* 24*60*60, {s=>1}],
+
+	  percent => [ 0.01, {}],
 
 # test me baby!
 	  __HONK_IF_YOU_PERL => [10, {m=>1, s=>-1}],
@@ -243,14 +246,14 @@ sub parse_other {
 	    my $factor = $units{$unit}->[0];
 	    my $exp = $hr->{$unit};
 	    foreach (keys %{$units{$unit}->[1]}) {
-		$temp{$_} += $units{$unit}->[1]->{$_} ** $exp;
+		$temp{$_} += $units{$unit}->[1]->{$_} * $exp;
 	    }
 	    $scale *= $factor ** $exp;
 	}
 	else {
 	    $temp{$unit} = $hr->{$unit};
 	}
-   }
+    }
     return (\%temp, $scale);
 }
 
