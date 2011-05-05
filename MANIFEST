@@ -9,3 +9,4 @@ t/02_map.t
 t/03_options.t
 t/04_import.t
 t/05_prefix.t
+META.yml                                 Module meta-data (added by MakeMaker)

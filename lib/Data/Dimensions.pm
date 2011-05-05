@@ -5,7 +5,7 @@ use Data::Dimensions::SickTie;
 use strict;
 use vars qw($VERSION @ISA @HANDLER);
 @ISA = qw();
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 # use me baby
 sub import {
@@ -31,6 +31,7 @@ sub set :lvalue {
 	$self->natural(@_);
 	return $self;
     }
+    # I can't stop using this as it exists now
     my $foo;
     tie $foo, 'Data::Dimensions::SickTie', $self, @_;
     $foo;
@@ -55,6 +56,34 @@ sub new {
 sub units {
     Data::Dimensions->new(@_);
 }
+
+#### tie() now works? for perl 5.14 so
+sub TIESCALAR {
+  if ($] < 5.014) {
+    croak("Cannot use tie with Data::Dimensions in Perl < 5.14.0, use set \$foo = ... instead");
+  }
+  my $class = shift;
+
+  my $units = shift || {};
+  my $val = shift || undef; # because
+  $class->new($units, $val);
+}
+sub FETCH {
+  return $_[0];
+}
+sub STORE {
+  my ($self, $val) = @_;
+  if (!ref($val) || !UNIVERSAL::isa($val, 'Data::Dimensions')) { # make a new me from a 'value'
+    $self->natural($val);
+  }
+  else {
+    $self->_moan("Storing value with incorrect units")
+      unless $self->same_units($val);
+    $self->base($val->base);
+  }
+}
+
+
 
 #####  Not so public methods
 sub natural {
@@ -187,7 +216,7 @@ sub u_arith {
 	$result->natural(&$op, $two, $one->natural);
     }
     elsif (!(ref($two) && UNIVERSAL::isa($two, 'Data::Dimensions'))) {
-	$result->natural(&$op, $one->natural, $two);
+      $result->natural(&$op($one->natural, $two));
     }
     else {
 	$one->_moan("Mixing different types in arithmetic operation")
@@ -307,6 +336,10 @@ Data::Dimensions - Strongly type values with physical units
 
   $mass->set = 10; $c->set = 299_792_458;
 
+  # In perl >= 5.14, you can tie, set continues to work
+  tie my $foo, 'Data::Dimensions', {joule => 1};
+  $foo = 12;
+
   # checks that units of mc^2 same as energy, use indirect syntax...
   set $energy = $mass * $c**2;
 
@@ -398,6 +431,11 @@ can be assigned as a second argument:
  $speed  = units( {miles => 1, hour => -1}, 70 );
  $time   = units( {hour => 1}, 2 );
 
+For Perl from C<5.14.0> onwards, you can also tie variables directly
+so that you do not need to use the C<<->set()>> trick below:
+
+ tie my $foo, 'Data::Dimensions', {miles => 1, hour => -1}, 70;
+
 =head2 Assignment to a typed value
 
 The typed values can then be used as you would any other variable,
@@ -407,8 +445,7 @@ the indirect object syntax shown below.)
 
  set $distance = $speed * $time;
 
-(Due to a bug in the tie mechanism of perl, it is not possible to
-allow the simpler:
+For Perl from C<5.14.0> you should be able to do this:
 
  $distance = $speed * $time;
 
@@ -622,8 +659,10 @@ trivial but boring.
 
 =head1 BUGS
 
-The $foo->set is annoying, but needed as there seems to be a bug in
-perl's overloaded and tie mechanism.
+The $foo->set is annoying, and must be used for Perl before C<5.14.0>.
+Dave Mitchell fixed the bug behind this and gets a biscuit next
+time I see him.  Please let me know if there are any problems with
+the implementation of tie().
 
 If you discover any bugs in this module, or have features you would
 like added, please report them via the CPAN Request Tracker at
